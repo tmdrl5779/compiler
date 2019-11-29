@@ -21,8 +21,11 @@ param		: type_spec IDENT
 stmt		: expr_stmt			
 		| compound_stmt			
 		| if_stmt			
-		| while_stmt			
+		| while_stmt
+		| switch_stmt			
 		| return_stmt			;
+switch_stmt: SWITCH '(' expr ')' stmt;
+
 expr_stmt	: expr ';'			;
 while_stmt	: WHILE '(' expr ')' stmt	;
 compound_stmt: '{' local_decl* stmt* '}'	;
@@ -63,7 +66,7 @@ args	: expr (',' expr)*
 
 VOID: 'void';
 INT: 'int';
-
+SWITCH: 'switch';
 WHILE: 'while';
 IF: 'if';
 ELSE: 'else';
