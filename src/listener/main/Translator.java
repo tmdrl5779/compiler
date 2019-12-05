@@ -31,6 +31,7 @@ public class Translator {
 	
 	public static void main(String[] args) throws Exception
 	{
+		System.out.println("");
 		CharStream codeCharStream = CharStreams.fromFileName("test.c");
 		MiniCLexer lexer = new MiniCLexer(codeCharStream);
 		CommonTokenStream tokens = new CommonTokenStream( lexer );
