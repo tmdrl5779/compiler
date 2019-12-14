@@ -1,4 +1,4 @@
-package listener.main;
+﻿package listener.main;
 
 import java.util.Hashtable;
 
@@ -520,8 +520,6 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				+ "ifeq " + End + "\n"
 				+ dostmt + ""
 				+ changeExpr + ""
-				+ conExpr + ""
-				+ "ifeq" + End + "\n"
 				+ "goto " + Loop + "\n"
 				+ End +":\n";
 		
