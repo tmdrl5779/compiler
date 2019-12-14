@@ -12,6 +12,8 @@ import generated.MiniCBaseListener;
 import generated.MiniCParser;
 import generated.MiniCParser.Case_stmtContext;
 import generated.MiniCParser.ExprContext;
+import generated.MiniCParser.For_declContext;
+import generated.MiniCParser.For_stmtContext;
 import generated.MiniCParser.Fun_declContext;
 import generated.MiniCParser.Local_declContext;
 import generated.MiniCParser.ParamsContext;
@@ -496,11 +498,18 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		}		
 		newTexts.put(ctx, argsStr);
 	}
+	@Override
+	public void exitFor_decl(For_declContext ctx) {
+		// TODO Auto-generated method stub
+	}
+	@Override
+	public void exitFor_stmt(For_stmtContext ctx) {
+		// TODO Auto-generated method stub
+	}
 
 	@Override
 	public void exitSwitch_stmt(Switch_stmtContext ctx) {
 		// TODO Auto-generated method stub
-		String 
 	}
 	
 	@Override

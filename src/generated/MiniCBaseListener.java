@@ -187,6 +187,18 @@ public class MiniCBaseListener implements MiniCListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterFor_stmt(@NotNull MiniCParser.For_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFor_stmt(@NotNull MiniCParser.For_stmtContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterExpr(@NotNull MiniCParser.ExprContext ctx) { }
 	/**
 	 * {@inheritDoc}
@@ -206,6 +218,18 @@ public class MiniCBaseListener implements MiniCListener {
 	 * <p>The default implementation does nothing.</p>
 	 */
 	@Override public void exitVar_decl(@NotNull MiniCParser.Var_declContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void enterFor_decl(@NotNull MiniCParser.For_declContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitFor_decl(@NotNull MiniCParser.For_declContext ctx) { }
 	/**
 	 * {@inheritDoc}
 	 *
