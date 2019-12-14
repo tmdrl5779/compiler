@@ -23,7 +23,10 @@ stmt		: expr_stmt
 		| if_stmt			
 		| while_stmt
 		| switch_stmt			
-		| return_stmt			;
+		| return_stmt
+		| case_stmt			;
+case_stmt: CASE LITERAL ':' stmt*;
+
 switch_stmt: SWITCH '(' expr ')' stmt;
 
 expr_stmt	: expr ';'			;
@@ -67,6 +70,7 @@ args	: expr (',' expr)*
 VOID: 'void';
 INT: 'int';
 SWITCH: 'switch';
+CASE: 'case';
 WHILE: 'while';
 IF: 'if';
 ELSE: 'else';

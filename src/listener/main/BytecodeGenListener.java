@@ -10,12 +10,14 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import generated.MiniCBaseListener;
 import generated.MiniCParser;
+import generated.MiniCParser.Case_stmtContext;
 import generated.MiniCParser.ExprContext;
 import generated.MiniCParser.Fun_declContext;
 import generated.MiniCParser.Local_declContext;
 import generated.MiniCParser.ParamsContext;
 import generated.MiniCParser.ProgramContext;
 import generated.MiniCParser.StmtContext;
+import generated.MiniCParser.Switch_stmtContext;
 import generated.MiniCParser.Type_specContext;
 import generated.MiniCParser.Var_declContext;
 
@@ -495,4 +497,16 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		newTexts.put(ctx, argsStr);
 	}
 
+	@Override
+	public void exitSwitch_stmt(Switch_stmtContext ctx) {
+		// TODO Auto-generated method stub
+		String 
+	}
+	
+	@Override
+	public void exitCase_stmt(Case_stmtContext ctx) {
+		// TODO Auto-generated method stub
+		super.exitCase_stmt(ctx);
+	}
+	
 }
