@@ -220,4 +220,18 @@ public class SymbolTable {
 		return sname;
 	}
 	
+	public boolean isGlobalVar(String name) {
+		if (_gsymtable.get(name) != null)
+			return true;
+		else
+			return false;
+	}
+
+	public boolean isLocalVar(String name) {
+		if (_lsymtable.get(name) != null)
+			return true;
+		else
+			return false;
+	}
+	
 }
