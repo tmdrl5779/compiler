@@ -505,6 +505,27 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	@Override
 	public void exitFor_stmt(For_stmtContext ctx) {
 		// TODO Auto-generated method stub
+		String stmt = "";
+		String decl = newTexts.get(ctx.for_decl()); // 선언부
+		String conExpr = newTexts.get(ctx.expr(0)); // 조건부
+		String changeExpr = newTexts.get(ctx.expr(1));//증감부
+		String dostmt = newTexts.get(ctx.stmt()); // 조건 만족시 수행할 구문
+		String Loop = symbolTable.newLabel(); //조건 만족시 Loop 라벨로 돌아가 반복
+		String End = symbolTable.newLabel(); //조건 만족하지 않을시 end 라벨로 돌아가 끝냄
+		
+
+		stmt += 	 decl + ""
+				+Loop + ":\n"
+				+ conExpr + ""
+				+ "ifeq " + End + "\n"
+				+ dostmt + ""
+				+ changeExpr + ""
+				+ conExpr + ""
+				+ "ifeq" + End + "\n"
+				+ "goto " + Loop + "\n"
+				+ End +":\n";
+		
+		newTexts.put(ctx, stmt);
 	}
 
 	@Override
