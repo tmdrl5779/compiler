@@ -169,6 +169,19 @@ public class SymbolTable {
 		
 		// <Fill here>	
 	}
+	String getForVarId(String name){ //변수 id를 얻는다.
+		VarInfo lvar = (VarInfo) _lsymtable.get(name);
+		if (lvar != null) {
+			return String.valueOf(lvar.id);
+		}
+		
+		VarInfo gvar = (VarInfo) _gsymtable.get(name);
+		if (gvar != null) {
+			return String.valueOf(gvar.id);
+		}
+		
+		return null;
+	}
 	
 	Type getVarType(String name){ //변수 id를 얻는다.
 		VarInfo lvar = (VarInfo) _lsymtable.get(name);

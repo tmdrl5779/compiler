@@ -499,8 +499,22 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		newTexts.put(ctx, argsStr);
 	}
 	@Override
-	public void exitFor_decl(For_declContext ctx) {
+	public void exitFor_decl(MiniCParser.For_declContext ctx) {
 		// TODO Auto-generated method stub
+		String for_dec = "";
+		if(ctx.getChildCount() == 1) {
+		String Expr= newTexts.get(ctx.expr());
+		for_dec += Expr;
+		}
+		else {
+			if (isForDeclWithInit(ctx)) {
+				String vId = symbolTable.getForVarId(ctx.getText()); // 지역변수들의 id를 설정해 준다.
+				for_dec += "ldc " + ctx.LITERAL().getText() + "\n" //초기화가 되어있는 지역변수 일경우 
+						+ "istore " + vId + "\n";
+			}
+		}
+		
+		
 	}
 	@Override
 	public void exitFor_stmt(For_stmtContext ctx) {
@@ -525,7 +539,13 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		
 		newTexts.put(ctx, stmt);
 	}
-
+	@Override
+	public void enterFor_decl(MiniCParser.For_declContext ctx) {
+		// TODO Auto-generated method stub
+		if (isForDeclWithInit(ctx)) {
+			symbolTable.putLocalVarWithInitVal(getForLocalVarName(ctx), Type.INT, initForVal(ctx)); //type_spec IDENT '=' LITERAL ';'
+		}
+	}
 	@Override
 	public void exitSwitch_stmt(Switch_stmtContext ctx) {
 		// TODO Auto-generated method stub

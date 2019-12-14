@@ -4,6 +4,7 @@ import java.util.Hashtable;
 
 import generated.MiniCParser;
 import generated.MiniCParser.ExprContext;
+import generated.MiniCParser.For_declContext;
 import generated.MiniCParser.Fun_declContext;
 import generated.MiniCParser.If_stmtContext;
 import generated.MiniCParser.Local_declContext;
@@ -31,9 +32,16 @@ public class BytecodeGenListenerHelper {
 	static int initVal(Var_declContext ctx) {
 		return Integer.parseInt(ctx.LITERAL().getText());
 	}
+	
+	static int initForVal(For_declContext ctx) {
+		return Integer.parseInt(ctx.LITERAL().getText());
+	}
 
 	// var_decl	: type_spec IDENT '=' LITERAL ';
 	static boolean isDeclWithInit(Var_declContext ctx) {
+		return ctx.getChildCount() == 5 ;
+	}
+	static boolean isForDeclWithInit(For_declContext ctx) {
 		return ctx.getChildCount() == 5 ;
 	}
 	// var_decl	: type_spec IDENT '[' LITERAL ']' ';'
@@ -106,6 +114,9 @@ public class BytecodeGenListenerHelper {
 	static String getLocalVarName(Local_declContext local_decl) { //local 변수 이름 출럭
 		return local_decl.getChild(1).getText();
 		// <Fill in>
+	}
+	static String getForLocalVarName(For_declContext local_decl) {
+		return local_decl.getChild(1).getText();
 	}
 	
 	static String getFunName(Fun_declContext ctx) { // 정의 함수 이름 출력

@@ -28,9 +28,9 @@ stmt      : expr_stmt
       | for_stmt         ;
 for_stmt : FOR '('for_decl ';' expr';' expr')' stmt;
 
-for_decl : type_spec IDENT
-      | type_spec IDENT '=' LITERAL
+for_decl :  type_spec IDENT '=' LITERAL
       | expr ;
+      
 case_stmt: CASE LITERAL ':' stmt*;
 
 switch_stmt: SWITCH '(' expr ')' stmt;
