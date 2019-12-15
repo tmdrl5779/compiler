@@ -38,7 +38,7 @@ switch_stmt: SWITCH '(' expr ')' stmt;
 expr_stmt   : expr ';'         ;
 while_stmt   : WHILE '(' expr ')' stmt   ;
 compound_stmt: '{' local_decl* stmt* '}'   
-				| ':' local_decl* stmt* ;
+				| ':' local_decl* stmt* ;	//case statement
 local_decl   : type_spec IDENT ';'
       | type_spec IDENT '=' LITERAL ';'   
       | type_spec IDENT '[' LITERAL ']' ';'   ;

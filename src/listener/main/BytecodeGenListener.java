@@ -1,6 +1,8 @@
 ﻿package listener.main;
 
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
@@ -32,7 +34,9 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 	int tab = 0;
 	int label = 0;
+	int stackSize = 0; // Symbol Stack Offset
 
+	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>();
 	// program : decl+
 
 	@Override
@@ -69,11 +73,17 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	public void enterLocal_decl(MiniCParser.Local_declContext ctx) { // 지역 변수
 		if (isArrayDecl(ctx)) {
 			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INTARRAY);// type_spec IDENT '[' LITERAL ']' ';'
+
 		} else if (isDeclWithInit(ctx)) {
 			symbolTable.putLocalVarWithInitVal(getLocalVarName(ctx), Type.INT, initVal(ctx)); // type_spec IDENT '='
 																								// LITERAL ';'
+
+			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++);
+			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT, initVal(ctx));
 		} else { // simple decl
 			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INT); // type_spec IDENT ';'
+			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++);
+			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT);
 		}
 	}
 
@@ -123,7 +133,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				stmt += newTexts.get(ctx.while_stmt());
 			} else if (ctx.return_stmt() != null) { // return_stmt
 				stmt += newTexts.get(ctx.return_stmt());
+			} else if (ctx.for_stmt() != null) {
+				stmt += newTexts.get(ctx.for_stmt());
 			}
+
 			// <(0) Fill here> ///////////////
 		}
 		newTexts.put(ctx, stmt);
@@ -202,6 +215,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 		if (isDeclWithInit(ctx)) {
 			String vId = symbolTable.getVarId(ctx); // 지역변수들의 id를 설정해 준다.
+
 			varDecl += "ldc " + ctx.LITERAL().getText() + "\n" // 초기화가 되어있는 지역변수 일경우
 					+ "istore " + vId + "\n";
 		}
@@ -282,66 +296,61 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	public void exitExpr(MiniCParser.ExprContext ctx) {
 		String expr = "";
 
-		if(ctx.getChildCount() <= 0) {
-			newTexts.put(ctx, ""); 
+		if (ctx.getChildCount() <= 0) {
+			newTexts.put(ctx, "");
 			return;
-		}		
-		
-		if(ctx.getChildCount() == 1) { // IDENT | LITERAL
-			if(ctx.IDENT() != null) {
-				String idName = ctx.IDENT().getText();
-				if(symbolTable.getVarType(idName) == Type.INT) {
-					
-		if(symbolTable.isLocalVar(idName)) {//local var
-					expr += "iload " + symbolTable.getVarId(idName) + " \n";
-					}
-		else if(symbolTable.isGlobalVar(idName)) {
-						expr+="getfield "+idName+":"+"I\n"; //global var
-					}
-				}
-				//else	// Type int array => Later! skip now..
-				
-				//expr += "lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";
-				} else if (ctx.LITERAL() != null) {//constant
-				String literalStr = ctx.LITERAL().getText();
-					expr += "ldc " + literalStr + " \n";
-				}
-			} 
-		else if(ctx.getChildCount() == 2) { // UnaryOperation
-			expr = handleUnaryExpr(ctx, newTexts.get(ctx) + expr);			
 		}
-		else if(ctx.getChildCount() == 3) {	 
-			if(ctx.getChild(0).getText().equals("(")) { 		// '(' expr ')'
+
+		if (ctx.getChildCount() == 1) { // IDENT | LITERAL
+			if (ctx.IDENT() != null) {
+				String idName = symbolTable.getVarId(ctx.IDENT().getText());
+				String name = ctx.IDENT().getText();
+				if (symbolTable.isGlobalVar(idName)) {
+					expr += "getfield " + idName + ":" + "I\n"; // global var
+				}
+
+				else if (symbolTable.isDeclinedVar(name)) {// local var
+					expr += "iload " + idName + " \n";
+				}
+
+				// else // Type int array => Later! skip now..
+
+				// expr += "lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";
+			} else if (ctx.LITERAL() != null) {// constant
+				String literalStr = ctx.LITERAL().getText();
+				expr += "ldc " + literalStr + " \n";
+			}
+		} else if (ctx.getChildCount() == 2) { // UnaryOperation
+			expr = handleUnaryExpr(ctx, newTexts.get(ctx) + expr);
+		} else if (ctx.getChildCount() == 3) {
+			if (ctx.getChild(0).getText().equals("(")) { // '(' expr ')'
 				expr = newTexts.get(ctx.expr(0));
-				}
-			else if(ctx.getChild(1).getText().equals("=")) { 	// IDENT '=' expr
+			} else if (ctx.getChild(1).getText().equals("=")) { // IDENT '=' expr
 				String idName = ctx.IDENT().getText();
-				if(symbolTable.isLocalVar(idName)) {
-				expr = newTexts.get(ctx.expr(0))+ "istore " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";
+				if (symbolTable.isDeclinedVar(idName)) {
+					expr = newTexts.get(ctx.expr(0)) + "istore " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";
+
+				} else if (symbolTable.isGlobalVar(idName)) {
+					expr = newTexts.get(ctx.expr(0)) + "setfield " + idName + ":" + "INT\n";
 				}
-				else if(symbolTable.isGlobalVar(idName)) {
-					expr = newTexts.get(ctx.expr(0))+"setfield "+idName+":"+"INT\n";
-				}
-			} 
-			else { 	// binary operation
+			} else { // binary operation
 				expr = handleBinExpr(ctx, expr);
-				
+
 			}
 		}
-		// IDENT '(' args ')' |  IDENT '[' expr ']'
-		else if(ctx.getChildCount() == 4) {
-			if(ctx.args() != null){		// function calls
+		// IDENT '(' args ')' | IDENT '[' expr ']'
+		else if (ctx.getChildCount() == 4) {
+			if (ctx.args() != null) { // function calls
 				expr = handleFunCall(ctx, expr);
 			} else { // expr
-				// Arrays: TODO  
+				// Arrays: TODO
 			}
 		}
 		// IDENT '[' expr ']' '=' expr
-		else { // Arrays: TODO			*/
+		else { // Arrays: TODO */
 		}
 		newTexts.put(ctx, expr);
 	}
-
 
 	private String handleUnaryExpr(MiniCParser.ExprContext ctx, String expr) { // 단항 연산
 		String l1 = symbolTable.newLabel();
@@ -490,13 +499,13 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			String Expr = newTexts.get(ctx.expr());
 			for_dec += Expr;
 		} else {
-			if (isForDeclWithInit(ctx)) {
-				String vId = symbolTable.getForVarId(ctx.getText()); // 지역변수들의 id를 설정해 준다.
-				for_dec += "ldc " + ctx.LITERAL().getText() + "\n" // 초기화가 되어있는 지역변수 일경우
-						+ "istore " + vId + "\n";
-			}
+
+			String vId = symbolTable.getVarId(ctx.IDENT().getText()); // 지역변수들의 id를 설정해 준다.
+			for_dec += "ldc " + ctx.LITERAL().getText() + "\n" // 초기화가 되어있는 지역변수 일경우
+					+ "istore " + vId + "\n";
 		}
 
+		newTexts.put(ctx, for_dec);
 	}
 
 	@Override
@@ -514,6 +523,16 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				+ Loop + "\n" + End + ":\n";
 
 		newTexts.put(ctx, stmt);
+		int blockDeclSize = this.StoreBlockDeclSize.pop();
+		this.stackSize -= blockDeclSize;
+		symbolTable.popLocalBlockFromSymbolStackByOffset(blockDeclSize);
+
+		for (int i = 0; i < blockDeclSize - 1; i++) {
+			symbolTable.removeSymbolInHashTable(ctx.stmt().compound_stmt().local_decl(i).IDENT().getText());
+		}
+		symbolTable.removeSymbolInHashTable(ctx.for_decl().IDENT().getText());
+		symbolTable.initBlockDecl(blockDeclSize);
+
 	}
 
 	@Override
@@ -523,6 +542,33 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			symbolTable.putLocalVarWithInitVal(getForLocalVarName(ctx), Type.INT, initForVal(ctx)); // type_spec IDENT
 																									// '=' LITERAL ';'
 		}
+
+	}
+
+	@Override
+	public void enterFor_stmt(For_stmtContext ctx) {
+		List<Local_declContext> localDeclList = ctx.stmt().compound_stmt().local_decl();
+		For_declContext forDecl = ctx.for_decl();
+		String varName = forDecl.IDENT().getText();
+		Type type = Type.INT;
+		String initVar = forDecl.LITERAL().getText();
+		symbolTable.putSymbolIntoHashTable(varName, stackSize++);
+		if (initVar != null)
+			symbolTable.putLocalVarIntoSymbolStack(varName, type, Integer.parseInt(initVar));
+		else
+			symbolTable.putLocalVarIntoSymbolStack(varName, type);
+
+		for (int i = 0; i < localDeclList.size(); i++) {
+			varName = localDeclList.get(i).IDENT().getText();
+			type = Type.INT;
+			initVar = localDeclList.get(i).LITERAL().getText();
+			symbolTable.putSymbolIntoHashTable(localDeclList.get(i).IDENT().getText(), stackSize++);
+			if (initVar != null)
+				symbolTable.putLocalVarIntoSymbolStack(varName, type, Integer.parseInt(initVar));
+			else
+				symbolTable.putLocalVarIntoSymbolStack(varName, type);
+		}
+		this.StoreBlockDeclSize.add(localDeclList.size() + 1);
 	}
 
 	@Override
