@@ -38,9 +38,9 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	int label = 0;
 	int stackSize = 0; // Symbol Stack Offset
 	private String thisFunName = "";
-	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>();
-	String[] caseJump;//case Label
-	Hashtable<Integer, String> hash = new Hashtable<Integer, String>();
+	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>(); // StoreBlockDeclSize stack선언
+	String[] caseJump;//case Label : case, case, case .......default, switchfinish
+	Hashtable<Integer, String> hash = new Hashtable<Integer, String>(); //key: case문의 value,  vale: case에 해당하는 label
 	int caseCount; // case 갯수
 	int caseNumber; // case 횟수
 	// program : decl+
@@ -86,12 +86,12 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			symbolTable.putLocalVarWithInitVal(getLocalVarName(ctx), Type.INT, initVal(ctx)); // type_spec IDENT '='
 																								// LITERAL ';'
 
-			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++);
-			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT, initVal(ctx));
+			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++); //scope를 확인하기 위해 hash table에 key를 변수, value를 stack size로 넣는다.
+			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT, initVal(ctx)); //stack에 변수를 쌓는다.
 		} else { // simple decl
 			symbolTable.putLocalVar(getLocalVarName(ctx), Type.INT); // type_spec IDENT ';'
-			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++);
-			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT);
+			symbolTable.putSymbolIntoHashTable(getLocalVarName(ctx), stackSize++);  //scope를 확인하기 위해 hash table에 key를 변수, value를 stack size로 넣는다.
+			symbolTable.putLocalVarIntoSymbolStack(getLocalVarName(ctx), Type.INT); //stack에 변수를 쌓는다.
 		}
 	}
 
@@ -232,10 +232,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 		if (isDeclWithInit(ctx)) {
 			String value = ctx.LITERAL().getText();
-			varDecl = ".field " + varName + " " + type + " = " + value + "\n"; // field 사용
+			varDecl = ".field " + varName + " " + type + " = " + value + "\n"; // field 사용해서 전역변수 선언
 
 		} else {
-			varDecl = ".field " + varName + " " + type + " = 0" + "\n";
+			varDecl = ".field " + varName + " " + type + " = 0" + "\n"; // 초기화 안돼있을때 field 사용해서 전역변수 =0 선언
 		}
 
 		newTexts.put(ctx, varDecl);
@@ -350,10 +350,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 					String tempVar = symbolTable.newTempVar();
 					if (this.thisFunName.equals("main")) {
 						
-						classref = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V"+"\nastore "+tempVar+"\n"; //객체 선언
+						classref = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V"+"\nastore "+tempVar+"\n"; //객체 선언 및 호출
 					}
 					else {
-						classref = "astore "+tempVar+"\n"; //객체 불러오기
+						classref = "astore "+tempVar+"\n"; //객체 호출
 					}
 
 					expr += classref+"aload "+tempVar+"\n"+"getfield " + "Test/" + name + " I\n"; // global var
@@ -382,10 +382,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 			else if (ctx.getChild(1).getText().equals("=")) { // IDENT '=' expr
 				String idName = ctx.IDENT().getText();
-				if (symbolTable.isDeclinedVar(idName)) {
-					expr = newTexts.get(ctx.expr(0)) + "istore " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";
+				if (symbolTable.isDeclinedVar(idName)) { //선언된 변수가 있는지 확인
+					expr = newTexts.get(ctx.expr(0)) + "istore " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n"; 
 
-				} else if (symbolTable.isGlobalVar(idName)) {
+				} else if (symbolTable.isGlobalVar(idName)) { //전역변수
 					
 					
 					String tempVar="0";
@@ -395,10 +395,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 					}
 
 					// global var
-					expr += "aload "+tempVar+"\n"+ newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 가져오기
+					expr += "aload "+tempVar+"\n"+ newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 저장
 
 				} else {
-					expr += "aload 0\n" + newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 가져오기
+					expr += "aload 0\n" + newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 저장
 				}
 				
 				
@@ -598,14 +598,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				+ Loop + "\n" + End + ":\n";
 
 		newTexts.put(ctx, stmt);
-		int blockDeclSize = this.StoreBlockDeclSize.pop(); //스택에 블럭된 사이즈만큼 pop시킨다.
-		this.stackSize -= blockDeclSize;
-		symbolTable.popLocalBlockFromSymbolStackByOffset(blockDeclSize);
+		int blockDeclSize = this.StoreBlockDeclSize.pop(); // 블럭의 decl size를 스택에서 pop시킨다.
+		this.stackSize -= blockDeclSize; // stack 사이즈를 블럭의 decl크기 만큼 줄인다.
+		symbolTable.popLocalBlockFromSymbolStackByOffset(blockDeclSize); // 해당block에서 사용가능한  모든 decl pop 
 
 		for (int i = 0; i < blockDeclSize - 1; i++) {
-			symbolTable.removeSymbolInHashTable(ctx.stmt().compound_stmt().local_decl(i).IDENT().getText());
+			symbolTable.removeSymbolInHashTable(ctx.stmt().compound_stmt().local_decl(i).IDENT().getText()); //hashtable에서 해당 변수 삭제
 		}
-		symbolTable.removeSymbolInHashTable(ctx.for_decl().IDENT().getText());
+		symbolTable.removeSymbolInHashTable(ctx.for_decl().IDENT().getText()); //hashtable에서 해당 변수를 삭제한다.
 		symbolTable.initBlockDecl(blockDeclSize); //block된 변수의 사이즈만큼 스택에서 빼준다
 
 	}
@@ -622,28 +622,28 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 	@Override
 	public void enterFor_stmt(For_stmtContext ctx) {
-		List<Local_declContext> localDeclList = ctx.stmt().compound_stmt().local_decl();
-		For_declContext forDecl = ctx.for_decl();
-		String varName = forDecl.IDENT().getText();
+		List<Local_declContext> localDeclList = ctx.stmt().compound_stmt().local_decl();	//for문에서 선언한 선언문 list
+		For_declContext forDecl = ctx.for_decl();	//for 선언문
+		String varName = forDecl.IDENT().getText();	//for 선언문 identity
 		Type type = Type.INT;
-		String initVar = forDecl.LITERAL().getText();
-		symbolTable.putSymbolIntoHashTable(varName, stackSize++);
-		if (initVar != null)
+		String initVar = forDecl.LITERAL().getText();//for 선언문 초기화값
+		symbolTable.putSymbolIntoHashTable(varName, stackSize++);	//선언문 변수 심볼 해쉬테이블에 put
+		if (initVar != null) //초기화값이 없는 선언문일때
 			symbolTable.putLocalVarIntoSymbolStack(varName, type, Integer.parseInt(initVar));
-		else
+		else	//초기화값이 있는 선언문일때
 			symbolTable.putLocalVarIntoSymbolStack(varName, type);
 
-		for (int i = 0; i < localDeclList.size(); i++) {
+		for (int i = 0; i < localDeclList.size(); i++) { //모든 변수선언문에 대해 심볼 해쉬테이블에 put
 			varName = localDeclList.get(i).IDENT().getText();
 			type = Type.INT;
 			initVar = localDeclList.get(i).LITERAL().getText();
 			symbolTable.putSymbolIntoHashTable(localDeclList.get(i).IDENT().getText(), stackSize++);
 			if (initVar != null)
-				symbolTable.putLocalVarIntoSymbolStack(varName, type, Integer.parseInt(initVar));
+				symbolTable.putLocalVarIntoSymbolStack(varName, type, Integer.parseInt(initVar)); //심볼테이블 스택에 put
 			else
-				symbolTable.putLocalVarIntoSymbolStack(varName, type);
+				symbolTable.putLocalVarIntoSymbolStack(varName, type);	//
 		}
-		this.StoreBlockDeclSize.add(localDeclList.size() + 1);
+		this.StoreBlockDeclSize.add(localDeclList.size() + 1); //블럭의 decl가 몇개인지를 stack에 add한다.
 	}
 
 	@Override

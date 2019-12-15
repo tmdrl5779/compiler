@@ -22,29 +22,29 @@ public class SymbolTable {
 	Stack<VarInfo> stack = new Stack<VarInfo>();
 	Hashtable<String, Integer> hashSymbol = new Hashtable<String, Integer>();
 
-	public void putSymbolIntoHashTable(String varName, int offSet) {
+	public void putSymbolIntoHashTable(String varName, int offSet) { //hashtable에 put
 		hashSymbol.put(varName, offSet);
 	}
 
-	public int getOffSetFromHashTable(String varName) {
+	public int getOffSetFromHashTable(String varName) { // hashtabe에서 get
 		return hashSymbol.get(varName);
 	}
 
-	public void removeSymbolInHashTable(String varName) {
+	public void removeSymbolInHashTable(String varName) { //hashtabe에서 remove
 		hashSymbol.remove(varName);
 	}
 
-	public VarInfo getVarInfoFromSymbolStack(int offset) {
+	public VarInfo getVarInfoFromSymbolStack(int offset) { //stack get
 		return stack.get(offset);
 	}
 
-	public void putLocalVarIntoSymbolStack(String varName, Type type, int initVar) { 
+	public void putLocalVarIntoSymbolStack(String varName, Type type, int initVar) {  //stack push
 		VarInfo varinfo = new VarInfo(type, _localVarID++, initVar);
 		stack.push(varinfo);
 
 	}
 
-	public void putLocalVarIntoSymbolStack(String varName, Type type) { //symboltable에 저장된 사용가능한 변수 stack에 push
+	public void putLocalVarIntoSymbolStack(String varName, Type type) { //해당 block에 저장된 사용가능한 변수 stack에 push
 		VarInfo varinfo = new VarInfo(type, _localVarID++);
 		stack.push(varinfo);
 
