@@ -35,7 +35,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	int tab = 0;
 	int label = 0;
 	int stackSize = 0; // Symbol Stack Offset
-
+	private String thisFunName = "";
 	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>();
 	// program : decl+
 
@@ -43,6 +43,8 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	public void enterFun_decl(MiniCParser.Fun_declContext ctx) { // 함수에 들어갈때 함수의 이름과 파라미터들을 symboltable에 넣는다.
 		symbolTable.initFunDecl();
 		String fname = getFunName(ctx);
+		this.thisFunName = fname;
+
 		ParamsContext params;
 
 		if (fname.equals("main")) {
@@ -195,15 +197,15 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		String varDecl = "";
 		String type = "";
 		if (symbolTable.getVarType(varName) == Type.INT) {
-			type = ":I";
+			type = "I";
 		}
 
 		if (isDeclWithInit(ctx)) {
 			String value = ctx.LITERAL().getText();
-			varDecl += "ldc " + value + "\n" + "putfield " + varName + type + "\n";
+			varDecl = ".field " + varName + " " + type + " = " + value + "\n";
 
 		} else {
-			varDecl += "ldc 0\n" + "putfield " + varName + type + "\n";
+			varDecl = ".field " + varName + " " + type + " = 0" + "\n";
 		}
 
 		newTexts.put(ctx, varDecl);
@@ -306,7 +308,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				String idName = symbolTable.getVarId(ctx.IDENT().getText());
 				String name = ctx.IDENT().getText();
 				if (symbolTable.isGlobalVar(idName)) {
-					expr += "getfield " + idName + ":" + "I\n"; // global var
+					String classref = "";
+					if (this.thisFunName.equals("main")) {
+						String tempVar = symbolTable.newTempVar();
+						classref = "new Test\n" + "dup\n" + "invokespecial Test/" + idName + "astore "+tempVar+"\n";
+					}
+
+					expr += "getfield " + "Test/" + idName + "I\n"; // global var
+
 				}
 
 				else if (symbolTable.isDeclinedVar(name)) {// local var
@@ -316,7 +325,9 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				// else // Type int array => Later! skip now..
 
 				// expr += "lda " + symbolTable.get(ctx.IDENT().getText()).value + " \n";
-			} else if (ctx.LITERAL() != null) {// constant
+			}
+
+			else if (ctx.LITERAL() != null) {// constant
 				String literalStr = ctx.LITERAL().getText();
 				expr += "ldc " + literalStr + " \n";
 			}
@@ -325,31 +336,53 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		} else if (ctx.getChildCount() == 3) {
 			if (ctx.getChild(0).getText().equals("(")) { // '(' expr ')'
 				expr = newTexts.get(ctx.expr(0));
-			} else if (ctx.getChild(1).getText().equals("=")) { // IDENT '=' expr
+			}
+
+			else if (ctx.getChild(1).getText().equals("=")) { // IDENT '=' expr
 				String idName = ctx.IDENT().getText();
 				if (symbolTable.isDeclinedVar(idName)) {
 					expr = newTexts.get(ctx.expr(0)) + "istore " + symbolTable.getVarId(ctx.IDENT().getText()) + " \n";
 
 				} else if (symbolTable.isGlobalVar(idName)) {
-					expr = newTexts.get(ctx.expr(0)) + "setfield " + idName + ":" + "INT\n";
-				}
-			} else { // binary operation
-				expr = handleBinExpr(ctx, expr);
+					
+					
+					String tempVar="0";
+					if (this.thisFunName.equals("main")) {
+						tempVar = symbolTable.newTempVar();
+						expr = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V\n" + "astore "+tempVar+"\n";
+					}
 
+					// global var
+					expr += "aload "+tempVar+"\n"+ newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n";
+
+				} else {
+					expr += "aload 0\n" + newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n";
+				}
+				
+				
+			}
+			else {
+				expr = handleBinExpr(ctx, expr);
 			}
 		}
+
 		// IDENT '(' args ')' | IDENT '[' expr ']'
-		else if (ctx.getChildCount() == 4) {
+
+		else if (ctx.getChildCount() == 4)
+
+		{
 			if (ctx.args() != null) { // function calls
 				expr = handleFunCall(ctx, expr);
 			} else { // expr
 				// Arrays: TODO
 			}
 		}
+
 		// IDENT '[' expr ']' '=' expr
-		else { // Arrays: TODO */
-		}
+
+	
 		newTexts.put(ctx, expr);
+
 	}
 
 	private String handleUnaryExpr(MiniCParser.ExprContext ctx, String expr) { // 단항 연산
