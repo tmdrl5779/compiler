@@ -116,7 +116,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				+"putfield Test/"+ctx.decl(i).var_decl().IDENT().getText()+" I";	
 			
 			}
-		newTexts.put(ctx, classProlog +var_decl+".method public <init>()V \n"
+		newTexts.put(ctx, classProlog +var_decl+".method public <init>()V \n" //class 생성자에 있던 정보들을 global_init을 추가하여 생성
 				+".limit stack 32\n"
 				+".limit locals 32\n"
 				+global_init+"\n"
@@ -570,10 +570,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	public void exitFor_decl(MiniCParser.For_declContext ctx) {
 		// TODO Auto-generated method stub
 		String for_dec = "";
-		if (ctx.getChildCount() == 1) {
+		if (ctx.getChildCount() == 1) { //expr일 경우 i = 0
 			String Expr = newTexts.get(ctx.expr());
 			for_dec += Expr;
-		} else {
+		} else { //for_decl일 경우 int i = 0
 
 			String vId = symbolTable.getVarId(ctx.IDENT().getText()); // 지역변수들의 id를 설정해 준다.
 			for_dec += "ldc " + ctx.LITERAL().getText() + "\n" // 초기화가 되어있는 지역변수 일경우
@@ -598,7 +598,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				+ Loop + "\n" + End + ":\n";
 
 		newTexts.put(ctx, stmt);
-		int blockDeclSize = this.StoreBlockDeclSize.pop();
+		int blockDeclSize = this.StoreBlockDeclSize.pop(); //스택에 블럭된 사이즈만큼 pop시킨다.
 		this.stackSize -= blockDeclSize;
 		symbolTable.popLocalBlockFromSymbolStackByOffset(blockDeclSize);
 
@@ -606,7 +606,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			symbolTable.removeSymbolInHashTable(ctx.stmt().compound_stmt().local_decl(i).IDENT().getText());
 		}
 		symbolTable.removeSymbolInHashTable(ctx.for_decl().IDENT().getText());
-		symbolTable.initBlockDecl(blockDeclSize);
+		symbolTable.initBlockDecl(blockDeclSize); //block된 변수의 사이즈만큼 스택에서 빼준다
 
 	}
 

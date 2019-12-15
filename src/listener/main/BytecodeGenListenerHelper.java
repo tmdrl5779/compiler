@@ -133,7 +133,7 @@ public class BytecodeGenListenerHelper {
 		return ctx.getChildCount() == 5;
 	}
 	
-	static String getFunProlog() { //class start
+	static String getFunProlog() { //class start 변경
 		String s = "";
 		 return "\n.class public "+ getCurrentClassName() +"\n"
 				+ ".super java/lang/Object \n";
