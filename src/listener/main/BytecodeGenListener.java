@@ -95,15 +95,26 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		String classProlog = getFunProlog();
 
 		String fun_decl = "", var_decl = "";
-
+		int decl_size = 0;
 		for (int i = 0; i < ctx.getChildCount(); i++) {
 			if (isFunDecl(ctx, i))
 				fun_decl += newTexts.get(ctx.decl(i));
-			else
+			else {
 				var_decl += newTexts.get(ctx.decl(i));
+				decl_size++;
+			}
+				
 		}
-
+		String global_init ="";
+		for(int i =0;i<decl_size;i++) {
+			global_init+="aload_0\n"+"bipush "+ctx.decl(i).var_decl().LITERAL().getText()+"\n"
+				+"putfield Test/"+ctx.decl(i).var_decl().IDENT().getText()+" I";	
+			
+			}
 		newTexts.put(ctx, classProlog +var_decl+".method public <init>()V \n"
+				+".limit stack 32\n"
+				+".limit locals 32\n"
+				+global_init+"\n"
 				+ "aload_0 \n"
 		 		+ "invokenonvirtual java/lang/Object/<init>()V  \n"
 		 		+ "return \n"
