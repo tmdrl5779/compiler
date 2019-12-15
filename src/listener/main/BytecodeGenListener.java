@@ -2,6 +2,7 @@
 
 import java.util.Hashtable;
 import java.util.List;
+import java.util.PriorityQueue;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -38,6 +39,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	int stackSize = 0; // Symbol Stack Offset
 	private String thisFunName = "";
 	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>();
+	String[] caseJump;///////////수정/////
+	Hashtable<Integer, String> hash = new Hashtable<Integer, String>();
+	int caseCount; ////////////////////
+	int caseNumber; ////////////
 	// program : decl+
 
 	@Override
@@ -140,23 +145,32 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	@Override
 	public void exitStmt(MiniCParser.StmtContext ctx) {
 		String stmt = "";
-		if (ctx.getChildCount() > 0) {
-			if (ctx.expr_stmt() != null) // expr_stmt
+		if(ctx.getChildCount() > 0)
+		{
+			if(ctx.expr_stmt() != null)				// expr_stmt
 				stmt += newTexts.get(ctx.expr_stmt());
-			else if (ctx.compound_stmt() != null) // compound_stmt
+			else if(ctx.compound_stmt() != null)	// compound_stmt
 				stmt += newTexts.get(ctx.compound_stmt());
-			else if (ctx.if_stmt() != null) { // if_stmt
+			else if(ctx.if_stmt() != null) {	//if_stmt
 				stmt += newTexts.get(ctx.if_stmt());
-			} else if (ctx.while_stmt() != null) { // while_stmt
+			}
+			else if(ctx.while_stmt() != null) {	//while_stmt
 				stmt += newTexts.get(ctx.while_stmt());
-			} else if (ctx.return_stmt() != null) { // return_stmt
+			}
+			else if(ctx.return_stmt() !=null) { //return_stmt
 				stmt += newTexts.get(ctx.return_stmt());
-			} else if (ctx.for_stmt() != null) {
+			}
+			else if(ctx.switch_stmt() != null) {	///////////수정/////
+				stmt += newTexts.get(ctx.switch_stmt());
+			}
+			else if(ctx.case_stmt() != null) {	///////////수정/////
+				stmt += newTexts.get(ctx.case_stmt());
+			}
+			else if(ctx.for_stmt() != null) {
 				stmt += newTexts.get(ctx.for_stmt());
 			}
-
-			// <(0) Fill here> ///////////////
-		}
+			// <(0) Fill here>	///////////////
+	}
 		newTexts.put(ctx, stmt);
 	}
 
@@ -243,29 +257,37 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 	// compound_stmt : '{' local_decl* stmt* '}'
 	@Override
-	public void exitCompound_stmt(MiniCParser.Compound_stmtContext ctx) {
-		String[] s = new String[ctx.getChildCount() - 2];
+	public void exitCompound_stmt(MiniCParser.Compound_stmtContext ctx) {   ///////////수정/////
+		String[] s;
+		if("{".equals(ctx.getChild(0).getText())) {
+			s = new String[ctx.getChildCount()-2];
+		}
+		else {
+			s = new String[ctx.getChildCount()-1];
+		}
+		
 		int j = 0;
 		int k = 0;
 		int l = 0;
-		String s1 = "";
-
-		for (int i = 0; i < ctx.getChildCount(); i++) {
-			if (ctx.getChild(i) instanceof Local_declContext) { // child is local
-				s[l] = newTexts.get(ctx.local_decl(j)); // local_decl
+		String s1 ="";
+		
+		for(int i = 0; i < ctx.getChildCount(); i++) {
+			if(ctx.getChild(i) instanceof Local_declContext) { // child is local
+				s[l] = newTexts.get(ctx.local_decl(j)); //local_decl
 				l++;
 				j++;
-			} else if (ctx.getChild(i) instanceof StmtContext) { // child is stmt
+			}
+			else if(ctx.getChild(i) instanceof StmtContext) { // child is stmt
 				s[l] = newTexts.get(ctx.stmt(k)); // stmt
 				l++;
 				k++;
 			}
 		}
-
-		for (int i = 0; i < s.length; i++) {
-			s1 += s[i];
+		
+		for(int i = 0; i < s.length; i++) {
+			s1 += s[i] ;
 		}
-
+		
 		newTexts.put(ctx, s1);
 		// <(3) Fill here>
 	}
@@ -625,14 +647,70 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	}
 
 	@Override
-	public void exitSwitch_stmt(Switch_stmtContext ctx) {
+	public void enterSwitch_stmt(Switch_stmtContext ctx) {//////////////////
 		// TODO Auto-generated method stub
+		caseCount = ctx.stmt().compound_stmt().stmt().size();
+		caseJump = new String[caseCount+1]; // case, case, case ..... dafault switchFinish
+		for(int i = 0; i < caseCount; i++) {
+			caseJump[i] = symbolTable.newLabel();
+		}
+		caseJump[caseJump.length-1] = symbolTable.newLabel(); //switchFinish
+	}
+	
+	@Override
+	public void exitSwitch_stmt(Switch_stmtContext ctx) { ///////////수정/////
+		// TODO Auto-generated method stub
+		String s = newTexts.get(ctx.expr());
+		String lookuptswitch = "lookupswitch \n";
+		String value = "";
+		String default_ = "";
+		int key;
+		PriorityQueue<Integer> lookUpTableSort = new PriorityQueue<>(); 
+		for(int i = 0; i < caseCount; i++) {
+			if(ctx.stmt().compound_stmt().stmt(i).case_stmt().getChildCount() == 4) {
+				value = ctx.stmt().compound_stmt().stmt(i).case_stmt().LITERAL().getText();
+				lookUpTableSort.add(Integer.parseInt(value));
+				hash.put(Integer.parseInt(value), caseJump[i]);
+			}
+			else {
+				default_ = ctx.stmt().compound_stmt().stmt(i).case_stmt().DAFAULT().getText();
+			}
+			
+		}
+		
+		for(int i = 0; i < caseCount; i++) {
+			if(i == caseCount-1) {
+				lookuptswitch += default_ + ": " + caseJump[i] + "\n";
+			}
+			else {
+				key = lookUpTableSort.remove();
+				lookuptswitch += key +": " + hash.get(key) + "\n"; //key : label
+			}
+			
+		}
+		
+		String switchFinish = caseJump[caseJump.length-1];
+		
+		String stmts = newTexts.get(ctx.stmt());
+		caseNumber = 0;
+		newTexts.put(ctx, s+ lookuptswitch + stmts + caseJump[caseJump.length-1] + ":\n");
 	}
 
 	@Override
-	public void exitCase_stmt(Case_stmtContext ctx) {
+	public void exitCase_stmt(Case_stmtContext ctx) { ////////////////////////
 		// TODO Auto-generated method stub
-		super.exitCase_stmt(ctx);
+		
+		
+		String case_ = caseJump[caseNumber] + ":\n" + newTexts.get(ctx.stmt());
+		if(!"default".equals(ctx.getChild(0).getText())) {
+			if("break;".equals(ctx.BREAK().getText())) {
+				case_ += "goto " + caseJump[caseJump.length-1] + "\n";
+			}
+		}
+		
+		caseNumber++;
+		newTexts.put(ctx, case_);
+		
 	}
 
 }
