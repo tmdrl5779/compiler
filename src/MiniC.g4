@@ -25,7 +25,10 @@ stmt      : expr_stmt
       | switch_stmt         
       | return_stmt
       | case_stmt
+      | default_stmt
       | for_stmt         ;
+default_stmt: DEFAULT stmt BREAK;
+
 for_stmt : FOR '('for_decl ';' expr';' expr')' stmt;
 
 for_decl :  type_spec IDENT '=' LITERAL
@@ -38,7 +41,7 @@ switch_stmt: SWITCH '(' expr ')' stmt;
 expr_stmt   : expr ';'         ;
 while_stmt   : WHILE '(' expr ')' stmt   ;
 compound_stmt: '{' local_decl* stmt* '}'   
-				| ':' local_decl* stmt* ;	//case statement
+				| ':' local_decl* stmt* ;
 local_decl   : type_spec IDENT ';'
       | type_spec IDENT '=' LITERAL ';'   
       | type_spec IDENT '[' LITERAL ']' ';'   ;
@@ -78,6 +81,7 @@ VOID: 'void';
 INT: 'int';
 SWITCH: 'switch';
 CASE: 'case';
+DEFAULT: 'default';
 BREAK: 'break;';
 WHILE: 'while';
 FOR: 'for';
