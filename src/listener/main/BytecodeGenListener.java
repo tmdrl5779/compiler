@@ -39,10 +39,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	int stackSize = 0; // Symbol Stack Offset
 	private String thisFunName = "";
 	Stack<Integer> StoreBlockDeclSize = new Stack<Integer>();
-	String[] caseJump;///////////수정/////
+	String[] caseJump;//case Label
 	Hashtable<Integer, String> hash = new Hashtable<Integer, String>();
-	int caseCount; ////////////////////
-	int caseNumber; ////////////
+	int caseCount; // case 갯수
+	int caseNumber; // case 횟수
 	// program : decl+
 
 	@Override
@@ -160,13 +160,13 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			else if(ctx.return_stmt() !=null) { //return_stmt
 				stmt += newTexts.get(ctx.return_stmt());
 			}
-			else if(ctx.switch_stmt() != null) {	///////////수정/////
+			else if(ctx.switch_stmt() != null) { //switch_stmt
 				stmt += newTexts.get(ctx.switch_stmt());
 			}
-			else if(ctx.case_stmt() != null) {	///////////수정/////
+			else if(ctx.case_stmt() != null) {	//case_stmt
 				stmt += newTexts.get(ctx.case_stmt());
 			}
-			else if(ctx.for_stmt() != null) {
+			else if(ctx.for_stmt() != null) { //for_stmt
 				stmt += newTexts.get(ctx.for_stmt());
 			}
 			// <(0) Fill here>	///////////////
@@ -232,7 +232,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 		if (isDeclWithInit(ctx)) {
 			String value = ctx.LITERAL().getText();
-			varDecl = ".field " + varName + " " + type + " = " + value + "\n";
+			varDecl = ".field " + varName + " " + type + " = " + value + "\n"; // field 사용
 
 		} else {
 			varDecl = ".field " + varName + " " + type + " = 0" + "\n";
@@ -255,14 +255,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		newTexts.put(ctx, varDecl);
 	}
 
-	// compound_stmt : '{' local_decl* stmt* '}'
+	// compound_stmt : '{' local_decl* stmt* '}' | ':' local_decl* stmt* 
 	@Override
-	public void exitCompound_stmt(MiniCParser.Compound_stmtContext ctx) {   ///////////수정/////
+	public void exitCompound_stmt(MiniCParser.Compound_stmtContext ctx) {   
 		String[] s;
-		if("{".equals(ctx.getChild(0).getText())) {
+		if("{".equals(ctx.getChild(0).getText())) { //'{' local_decl* stmt* '}'
 			s = new String[ctx.getChildCount()-2];
 		}
-		else {
+		else {										//':' local_decl* stmt* 
 			s = new String[ctx.getChildCount()-1];
 		}
 		
@@ -350,10 +350,10 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 					String tempVar = symbolTable.newTempVar();
 					if (this.thisFunName.equals("main")) {
 						
-						classref = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V"+"\nastore "+tempVar+"\n";
+						classref = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V"+"\nastore "+tempVar+"\n"; //객체 선언
 					}
 					else {
-						classref = "astore "+tempVar+"\n";
+						classref = "astore "+tempVar+"\n"; //객체 불러오기
 					}
 
 					expr += classref+"aload "+tempVar+"\n"+"getfield " + "Test/" + name + " I\n"; // global var
@@ -391,14 +391,14 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 					String tempVar="0";
 					if (this.thisFunName.equals("main")) {
 						tempVar = symbolTable.newTempVar();
-						expr = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V\n" + "astore "+tempVar+"\n";
+						expr = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V\n" + "astore "+tempVar+"\n"; // 객체 선언, 저장
 					}
 
 					// global var
-					expr += "aload "+tempVar+"\n"+ newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n";
+					expr += "aload "+tempVar+"\n"+ newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 가져오기
 
 				} else {
-					expr += "aload 0\n" + newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n";
+					expr += "aload 0\n" + newTexts.get(ctx.expr(0)) + "putfield Test/" + idName + " " + "I\n"; //전역변수 가져오기
 				}
 				
 				
@@ -647,18 +647,18 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	}
 
 	@Override
-	public void enterSwitch_stmt(Switch_stmtContext ctx) {//////////////////
+	public void enterSwitch_stmt(Switch_stmtContext ctx) {
 		// TODO Auto-generated method stub
-		caseCount = ctx.stmt().compound_stmt().stmt().size();
+		caseCount = ctx.stmt().compound_stmt().stmt().size(); //case문 + default 갯수
 		caseJump = new String[caseCount+1]; // case, case, case ..... dafault switchFinish
-		for(int i = 0; i < caseCount; i++) {
+		for(int i = 0; i < caseCount; i++) { // 각 case의 label
 			caseJump[i] = symbolTable.newLabel();
 		}
 		caseJump[caseJump.length-1] = symbolTable.newLabel(); //switchFinish
 	}
 	
 	@Override
-	public void exitSwitch_stmt(Switch_stmtContext ctx) { ///////////수정/////
+	public void exitSwitch_stmt(Switch_stmtContext ctx) {
 		// TODO Auto-generated method stub
 		String s = newTexts.get(ctx.expr());
 		String lookuptswitch = "lookupswitch \n";
@@ -667,13 +667,13 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 		int key;
 		PriorityQueue<Integer> lookUpTableSort = new PriorityQueue<>(); 
 		for(int i = 0; i < caseCount; i++) {
-			if(ctx.stmt().compound_stmt().stmt(i).case_stmt().getChildCount() == 4) {
+			if(ctx.stmt().compound_stmt().stmt(i).case_stmt().getChildCount() == 4) { // case문일때
 				value = ctx.stmt().compound_stmt().stmt(i).case_stmt().LITERAL().getText();
-				lookUpTableSort.add(Integer.parseInt(value));
-				hash.put(Integer.parseInt(value), caseJump[i]);
+				lookUpTableSort.add(Integer.parseInt(value)); //lookuptable sort
+				hash.put(Integer.parseInt(value), caseJump[i]); //switch문 key랑 label
 			}
 			else {
-				default_ = ctx.stmt().compound_stmt().stmt(i).case_stmt().DAFAULT().getText();
+				default_ = ctx.stmt().compound_stmt().stmt(i).case_stmt().DAFAULT().getText(); //default일때 바로 아래로 내려감 스위치 빠져나가는 label 안써줌
 			}
 			
 		}
@@ -697,18 +697,18 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 	}
 
 	@Override
-	public void exitCase_stmt(Case_stmtContext ctx) { ////////////////////////
+	public void exitCase_stmt(Case_stmtContext ctx) { // case문
 		// TODO Auto-generated method stub
 		
 		
 		String case_ = caseJump[caseNumber] + ":\n" + newTexts.get(ctx.stmt());
-		if(!"default".equals(ctx.getChild(0).getText())) {
-			if("break;".equals(ctx.BREAK().getText())) {
-				case_ += "goto " + caseJump[caseJump.length-1] + "\n";
+		if(!"default".equals(ctx.getChild(0).getText())) { // default가 아니고 case일때
+			if("break;".equals(ctx.BREAK().getText())) { //break가 있을 경우 switch를 나간다.
+				case_ += "goto " + caseJump[caseJump.length-1] + "\n"; //break있으면 switch return
 			}
 		}
 		
-		caseNumber++;
+		caseNumber++; //case 횟수 증가.
 		newTexts.put(ctx, case_);
 		
 	}

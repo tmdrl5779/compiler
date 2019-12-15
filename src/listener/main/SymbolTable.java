@@ -38,26 +38,26 @@ public class SymbolTable {
 		return stack.get(offset);
 	}
 
-	public void putLocalVarIntoSymbolStack(String varName, Type type, int initVar) {
+	public void putLocalVarIntoSymbolStack(String varName, Type type, int initVar) { 
 		VarInfo varinfo = new VarInfo(type, _localVarID++, initVar);
 		stack.push(varinfo);
 
 	}
 
-	public void putLocalVarIntoSymbolStack(String varName, Type type) {
+	public void putLocalVarIntoSymbolStack(String varName, Type type) { //symboltable에 저장된 사용가능한 변수 stack에 push
 		VarInfo varinfo = new VarInfo(type, _localVarID++);
 		stack.push(varinfo);
 
 	}
 
-	public void popLocalBlockFromSymbolStackByOffset(int numberOfVarDecl) {
+	public void popLocalBlockFromSymbolStackByOffset(int numberOfVarDecl) { // symboltable에 사용가능한  모든 변수 pop
 		while (numberOfVarDecl != 0) {
 			stack.pop();
 			numberOfVarDecl--;
 		}
 	}
 
-	public boolean isDeclinedVar(String varName) {
+	public boolean isDeclinedVar(String varName) { // 선언된 변수가 있냐? 
 		return hashSymbol.containsKey(varName);
 	}
 
