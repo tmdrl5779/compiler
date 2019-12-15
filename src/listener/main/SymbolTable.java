@@ -100,7 +100,7 @@ public class SymbolTable {
 	void initFunDecl() { // at each func decl
 		_localVarID = 0;
 		_labelID = 0;
-		_tempVarID = 32;
+		_tempVarID = 8;
 	}
 
 	void initBlockDecl(int NumberOflocalVar) {// at each Block Decl

@@ -12,6 +12,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import generated.MiniCBaseListener;
 import generated.MiniCParser;
+import generated.MiniCParser.ArgsContext;
 import generated.MiniCParser.Case_stmtContext;
 import generated.MiniCParser.ExprContext;
 import generated.MiniCParser.For_declContext;
@@ -102,7 +103,11 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 				var_decl += newTexts.get(ctx.decl(i));
 		}
 
-		newTexts.put(ctx, classProlog + var_decl + fun_decl);
+		newTexts.put(ctx, classProlog +var_decl+".method public <init>()V \n"
+				+ "aload_0 \n"
+		 		+ "invokenonvirtual java/lang/Object/<init>()V  \n"
+		 		+ "return \n"
+		 		+ ".end method \n"+ fun_decl);
 
 		System.out.println(newTexts.get(ctx));
 	}
@@ -178,7 +183,7 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 
 		s1 = funcHeader(ctx, ctx.getChild(1).getText()); // 함수 시작
 		s2 = newTexts.get(ctx.compound_stmt()); // compound_stmt
-
+		
 		newTexts.put(ctx, s1 + s2 + ".end method \n");
 
 		symbolTable.initFunDecl(); // 함수가 끝나면 initFun 을 사용해 symbolTable의 id값들을 초기화 시킨다.
@@ -307,14 +312,18 @@ public class BytecodeGenListener extends MiniCBaseListener implements ParseTreeL
 			if (ctx.IDENT() != null) {
 				String idName = symbolTable.getVarId(ctx.IDENT().getText());
 				String name = ctx.IDENT().getText();
-				if (symbolTable.isGlobalVar(idName)) {
+				if (symbolTable.isGlobalVar(name)) {
 					String classref = "";
+					String tempVar = symbolTable.newTempVar();
 					if (this.thisFunName.equals("main")) {
-						String tempVar = symbolTable.newTempVar();
-						classref = "new Test\n" + "dup\n" + "invokespecial Test/" + idName + "astore "+tempVar+"\n";
+						
+						classref = "new Test\n" + "dup\n" + "invokespecial Test/<init>()V"+"\nastore "+tempVar+"\n";
+					}
+					else {
+						classref = "astore "+tempVar+"\n";
 					}
 
-					expr += "getfield " + "Test/" + idName + "I\n"; // global var
+					expr += classref+"aload "+tempVar+"\n"+"getfield " + "Test/" + name + " I\n"; // global var
 
 				}
 
